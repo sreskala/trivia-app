@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchQuizQuestions } from './API';
 // Components
 import QuestionCard from './components/QuestionCard';
+import CategoriesList from './components/CategoriesList';
 // types
 import { QuestionsState, Difficulty } from './API';
 // Styles
 import { GlobalStyle, Wrapper } from './App.styles';
+//Data
+import { questionsArray, Question } from './data/questions'
+import { getUniqueCategories, getRandomQuestions } from './utils/index'
+import { truncate } from 'fs';
 
 export type AnswerObject = {
   question: string;
@@ -15,22 +20,44 @@ export type AnswerObject = {
 };
 
 const TOTAL_QUESTIONS = 10;
+console.log(questionsArray);
 
 const App: React.FC = () => {
+
+  useEffect(() => {
+    const uniqueCategories = getUniqueCategories(questionsArray);
+    setCategories(uniqueCategories);
+  }, [])
+
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<QuestionsState[]>([]);
   const [number, setNumber] = useState(0);
   const [userAnswers, setUserAnswers] = useState<AnswerObject[]>([]);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(true);
+  const [categories, setCategories] = useState<string[]>([])
+  const [start, setStart] = useState<boolean>(false);
+  const [isStartButtonDisabled, setIsStartButtonDisabled] = useState<boolean>(false);
+
+  const startGame = () => {
+    setStart(true)
+    setIsStartButtonDisabled(true);
+  }
 
   const startTrivia = async () => {
+
+    let questions: Question[];
+
+    if (categories)
+
     setLoading(true);
     setGameOver(false);
     const newQuestions = await fetchQuizQuestions(
       TOTAL_QUESTIONS,
       Difficulty.EASY
     );
+
+    //const newQuestions: Question[] = questionsArray
     setQuestions(newQuestions);
     setScore(0);
     setUserAnswers([]);
@@ -73,11 +100,12 @@ const App: React.FC = () => {
       <GlobalStyle />
       <Wrapper>
         <h1>REACT QUIZ</h1>
-        {gameOver || userAnswers.length === TOTAL_QUESTIONS ? (
-          <button className='start' onClick={startTrivia}>
+        {(gameOver || userAnswers.length === TOTAL_QUESTIONS) && !isStartButtonDisabled ? (
+          <button className='start' onClick={startGame}>
             Start
           </button>
         ) : null}
+        {start ? <CategoriesList categories={categories}/> : null}
         {!gameOver ? <p className='score'>Score: {score}</p> : null}
         {loading ? <p>Loading Questions...</p> : null}
         {!loading && !gameOver && (
